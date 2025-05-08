@@ -1,20 +1,24 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useLinkStore } from '@/lib/store';
 import TagSelector from './TagSelector';
 
 export default function AddLinkForm() {
+  const router = useRouter();
   const [url, setUrl] = useState('');
   const [title, setTitle] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const addLink = useLinkStore((state) => state.addLink);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setError(null);
     
     try {
       const response = await fetch('/api/links', {
@@ -34,11 +38,11 @@ export default function AddLinkForm() {
       const savedLink = await response.json();
       addLink(savedLink);
       
-      setUrl('');
-      setTitle('');
-      setSelectedTags([]);
+      // Redirect to tweets page after successful save
+      router.push('/tweets');
     } catch (error) {
       console.error('Error saving link:', error);
+      setError('Failed to save tweet. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -49,6 +53,12 @@ export default function AddLinkForm() {
       <div className="bg-white rounded-2xl shadow-xl p-8 mb-12">
         <h2 className="text-2xl font-bold text-blue-800 mb-6">Add New Tweet</h2>
         <form onSubmit={handleSubmit} className="space-y-8">
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+              {error}
+            </div>
+          )}
+          
           <div className="space-y-6">
             <div>
               <label 
