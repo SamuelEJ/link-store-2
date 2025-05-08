@@ -1,10 +1,17 @@
 import { create } from 'zustand';
 
+interface Tag {
+  id: string;
+  name: string;
+  parentId: string | null;
+  parent: Tag | null;
+}
+
 interface Link {
   id: string;
   url: string;
   title: string | null;
-  category: string | null;
+  tags: Tag[];
   createdAt: string;
 }
 

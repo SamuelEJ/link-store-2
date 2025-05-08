@@ -6,13 +6,18 @@ const prisma = new PrismaClient();
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { url, title, category } = body;
+    const { url, title, tagIds } = body;
 
     const savedLink = await prisma.savedLink.create({
       data: {
         url,
         title,
-        category,
+        tags: {
+          connect: tagIds.map((id: string) => ({ id })),
+        },
+      },
+      include: {
+        tags: true,
       },
     });
 
@@ -28,6 +33,13 @@ export async function POST(request: Request) {
 export async function GET() {
   try {
     const links = await prisma.savedLink.findMany({
+      include: {
+        tags: {
+          include: {
+            parent: true,
+          },
+        },
+      },
       orderBy: {
         createdAt: 'desc',
       },

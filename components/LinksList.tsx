@@ -4,75 +4,105 @@ import { useEffect, useState } from 'react';
 import { Tweet } from 'react-tweet';
 import { useLinkStore } from '@/lib/store';
 
+interface Tag {
+  id: string;
+  name: string;
+  parentId: string | null;
+  parent: Tag | null;
+}
+
 interface SavedLink {
   id: string;
   url: string;
   title: string | null;
-  category: string | null;
+  tags: Tag[];
   createdAt: string;
 }
 
 export default function LinksList() {
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [categories, setCategories] = useState<string[]>([]);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [tags, setTags] = useState<Tag[]>([]);
   
   const { links, setLinks } = useLinkStore();
 
   useEffect(() => {
     fetchLinks();
+    fetchTags();
   }, []);
 
   const fetchLinks = async () => {
     try {
+      console.log('Fetching links...');
       const response = await fetch('/api/links');
       if (!response.ok) throw new Error('Failed to fetch links');
       const data = await response.json();
+      console.log('Received links:', data);
       setLinks(data);
-      
-      const uniqueCategories = Array.from(
-        new Set(
-          data
-            .flatMap((link: SavedLink) => 
-              link.category?.split(',').map(cat => cat.trim()) ?? []
-            )
-            .filter(Boolean)
-        )
-      );
-      setCategories(uniqueCategories as string[]);
     } catch (error) {
       console.error('Error fetching links:', error);
     }
   };
 
-  const filteredLinks = selectedCategory
+  const fetchTags = async () => {
+    try {
+      console.log('Fetching tags...');
+      const response = await fetch('/api/tags');
+      if (!response.ok) throw new Error('Failed to fetch tags');
+      const data = await response.json();
+      console.log('Received tags:', data);
+      setTags(data);
+    } catch (error) {
+      console.error('Error fetching tags:', error);
+    }
+  };
+
+  const getTagWithParents = (tag: Tag): string[] => {
+    const parents: string[] = [tag.name];
+    let currentTag = tag;
+    
+    while (currentTag.parent) {
+      parents.unshift(currentTag.parent.name);
+      currentTag = currentTag.parent;
+    }
+    
+    return parents;
+  };
+
+  console.log('Current links:', links);
+  console.log('Current tags:', tags);
+  console.log('Selected tag:', selectedTag);
+
+  const filteredLinks = selectedTag
     ? links.filter(link => 
-        link.category?.split(',').map(cat => cat.trim()).includes(selectedCategory)
+        link.tags.some(tag => tag.id === selectedTag)
       )
     : links;
 
+  console.log('Filtered links:', filteredLinks);
+
   return (
     <div className="max-w-4xl mx-auto">
-      {categories.length > 0 && (
+      {tags.length > 0 && (
         <div className="mb-8 flex flex-wrap gap-2">
           <button
-            onClick={() => setSelectedCategory(null)}
+            onClick={() => setSelectedTag(null)}
             className={`px-4 py-2 rounded-full text-sm font-medium transition-colors
-              ${!selectedCategory 
+              ${!selectedTag 
                 ? 'bg-blue-600 text-white' 
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
           >
             All
           </button>
-          {categories.map(category => (
+          {tags.map(tag => (
             <button
-              key={category}
-              onClick={() => setSelectedCategory(category)}
+              key={tag.id}
+              onClick={() => setSelectedTag(tag.id)}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-colors
-                ${selectedCategory === category 
+                ${selectedTag === tag.id 
                   ? 'bg-blue-600 text-white' 
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
             >
-              {category}
+              {tag.name}
             </button>
           ))}
         </div>
@@ -102,15 +132,24 @@ export default function LinksList() {
               )}
             </div>
             
-            {link.category && (
+            {link.tags.length > 0 && (
               <div className="mt-4 flex flex-wrap gap-2">
-                {link.category.split(',').map((cat, index) => (
-                  <span 
-                    key={index}
-                    className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full"
+                {link.tags.map((tag) => (
+                  <div 
+                    key={tag.id}
+                    className="flex items-center gap-1"
                   >
-                    {cat.trim()}
-                  </span>
+                    {getTagWithParents(tag).map((parentName, index, array) => (
+                      <span key={parentName}>
+                        <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                          {parentName}
+                        </span>
+                        {index < array.length - 1 && (
+                          <span className="mx-1 text-gray-400">/</span>
+                        )}
+                      </span>
+                    ))}
+                  </div>
                 ))}
               </div>
             )}

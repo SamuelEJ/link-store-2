@@ -7,11 +7,22 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Tag {
+  id        String   @id @default(cuid())
+  name      String
+  parentId  String?
+  parent    Tag?     @relation("TagHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children  Tag[]    @relation("TagHierarchy")
+  links     SavedLink[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model SavedLink {
   id        String   @id @default(cuid())
   url       String
   title     String?
-  category  String?
+  tags      Tag[]    // Replacing the category field with tags relation
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 } 

@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import { useLinkStore } from '@/lib/store';
+import TagSelector from './TagSelector';
 
 export default function AddLinkForm() {
   const [url, setUrl] = useState('');
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState('');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const addLink = useLinkStore((state) => state.addLink);
@@ -16,11 +17,6 @@ export default function AddLinkForm() {
     setIsSubmitting(true);
     
     try {
-      const categories = category
-        .split(',')
-        .map(cat => cat.trim())
-        .filter(cat => cat.length > 0);
-
       const response = await fetch('/api/links', {
         method: 'POST',
         headers: {
@@ -29,7 +25,7 @@ export default function AddLinkForm() {
         body: JSON.stringify({ 
           url, 
           title,
-          category: categories.join(',')
+          tagIds: selectedTags
         }),
       });
 
@@ -40,7 +36,7 @@ export default function AddLinkForm() {
       
       setUrl('');
       setTitle('');
-      setCategory('');
+      setSelectedTags([]);
     } catch (error) {
       console.error('Error saving link:', error);
     } finally {
@@ -72,40 +68,31 @@ export default function AddLinkForm() {
               />
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label 
-                  htmlFor="title" 
-                  className="block text-sm font-medium text-blue-700 mb-2"
-                >
-                  Title <span className="text-blue-400">(Optional)</span>
-                </label>
-                <input
-                  type="text"
-                  id="title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white transition-all duration-200"
-                  placeholder="Add a memorable title"
-                />
-              </div>
-              
-              <div>
-                <label 
-                  htmlFor="category" 
-                  className="block text-sm font-medium text-blue-700 mb-2"
-                >
-                  Categories <span className="text-blue-400">(Optional)</span>
-                </label>
-                <input
-                  type="text"
-                  id="category"
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white transition-all duration-200"
-                  placeholder="Tech, Sports, News"
-                />
-              </div>
+            <div>
+              <label 
+                htmlFor="title" 
+                className="block text-sm font-medium text-blue-700 mb-2"
+              >
+                Title <span className="text-blue-400">(Optional)</span>
+              </label>
+              <input
+                type="text"
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white transition-all duration-200"
+                placeholder="Add a memorable title"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-blue-700 mb-2">
+                Tags
+              </label>
+              <TagSelector
+                selectedTags={selectedTags}
+                onChange={setSelectedTags}
+              />
             </div>
           </div>
           
