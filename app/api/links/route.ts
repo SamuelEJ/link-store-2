@@ -52,4 +52,70 @@ export async function GET() {
       { status: 500 }
     );
   }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Tweet ID is required' },
+        { status: 400 }
+      );
+    }
+
+    await prisma.savedLink.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting tweet:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete tweet' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    const body = await request.json();
+    const { tagIds } = body;
+
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Tweet ID is required' },
+        { status: 400 }
+      );
+    }
+
+    const updatedLink = await prisma.savedLink.update({
+      where: { id },
+      data: {
+        tags: {
+          set: tagIds.map((id: string) => ({ id })),
+        },
+      },
+      include: {
+        tags: {
+          include: {
+            parent: true,
+          },
+        },
+      },
+    });
+
+    return NextResponse.json(updatedLink);
+  } catch (error) {
+    console.error('Error updating tweet tags:', error);
+    return NextResponse.json(
+      { error: 'Failed to update tweet tags' },
+      { status: 500 }
+    );
+  }
 } 

@@ -19,6 +19,8 @@ export default function TagSelector({ selectedTags, onChange }: TagSelectorProps
   const [tags, setTags] = useState<Tag[]>([]);
   const [newTagName, setNewTagName] = useState('');
   const [selectedParentId, setSelectedParentId] = useState<string | null>(null);
+  const [isCreatingTag, setIsCreatingTag] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchTags();
@@ -32,10 +34,16 @@ export default function TagSelector({ selectedTags, onChange }: TagSelectorProps
       setTags(data);
     } catch (error) {
       console.error('Error fetching tags:', error);
+      setError('Failed to load tags. Please try again.');
     }
   };
 
   const handleCreateTag = async () => {
+    if (!newTagName.trim()) return;
+    
+    setIsCreatingTag(true);
+    setError(null);
+    
     try {
       const response = await fetch('/api/tags', {
         method: 'POST',
@@ -50,11 +58,14 @@ export default function TagSelector({ selectedTags, onChange }: TagSelectorProps
 
       if (!response.ok) throw new Error('Failed to create tag');
       const newTag = await response.json();
-      setTags([...tags, newTag]);
+      setTags(prevTags => [...prevTags, newTag]);
       setNewTagName('');
       setSelectedParentId(null);
     } catch (error) {
       console.error('Error creating tag:', error);
+      setError('Failed to create tag. Please try again.');
+    } finally {
+      setIsCreatingTag(false);
     }
   };
 
@@ -86,6 +97,10 @@ export default function TagSelector({ selectedTags, onChange }: TagSelectorProps
 
   return (
     <div className="space-y-4">
+      {error && (
+        <div className="text-red-600 text-sm">{error}</div>
+      )}
+      
       <div className="space-y-2">
         <div className="flex gap-2">
           <input
@@ -93,12 +108,12 @@ export default function TagSelector({ selectedTags, onChange }: TagSelectorProps
             value={newTagName}
             onChange={(e) => setNewTagName(e.target.value)}
             placeholder="New tag name"
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="flex-1 px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
           <select
             value={selectedParentId || ''}
             onChange={(e) => setSelectedParentId(e.target.value || null)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="">No parent</option>
             {tags.map(tag => (
@@ -107,16 +122,16 @@ export default function TagSelector({ selectedTags, onChange }: TagSelectorProps
           </select>
           <button
             onClick={handleCreateTag}
-            disabled={!newTagName}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+            disabled={!newTagName.trim() || isCreatingTag}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 transition-colors"
           >
-            Add Tag
+            {isCreatingTag ? 'Adding...' : 'Add Tag'}
           </button>
         </div>
       </div>
 
-      <div className="border rounded-lg p-4">
-        <h3 className="font-medium text-gray-700 mb-2">Select Tags</h3>
+      <div className="border-2 border-gray-200 rounded-lg p-4">
+        <h3 className="font-medium text-gray-700 mb-4">Selected Tags: {selectedTags.length}</h3>
         {renderTagHierarchy(tags)}
       </div>
     </div>
